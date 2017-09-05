@@ -1,11 +1,10 @@
-﻿namespace Stratis.Bitcoin.Features.BlockStore
+﻿using Stratis.Bitcoin.Configuration.Logging;
+using System;
+using System.Text;
+using System.Threading;
+
+namespace Stratis.Bitcoin.Features.BlockStore
 {
-    using System;
-    using System.Text;
-    using System.Threading;
-
-    using Stratis.Bitcoin.Configuration.Logging;
-
     public class BlockStoreCachePerformanceCounter
     {
         private long cacheSetCount;

@@ -1,11 +1,11 @@
-﻿namespace Stratis.Bitcoin.Features.BlockStore.LoopSteps
-{
-    using System.Linq;
-    using System.Threading.Tasks;
-    using Microsoft.Extensions.Logging;
-    using NBitcoin;
-    using static Stratis.Bitcoin.BlockPulling.BlockPuller;
+﻿using Microsoft.Extensions.Logging;
+using NBitcoin;
+using static Stratis.Bitcoin.BlockPulling.BlockPuller;
+using System.Linq;
+using System.Threading.Tasks;
 
+namespace Stratis.Bitcoin.Features.BlockStore.LoopSteps
+{
     /// <summary>
     /// Reads blocks from the <see cref="BlockPuller"/> in a loop and removes block 
     /// from the <see cref="BlockStoreInnerStepContext.DownloadStack"/>.
