@@ -82,9 +82,8 @@ namespace Stratis.Bitcoin.Connection
 			{
 				NodeConnectionParameters cloneParameters = this.parameters.Clone();
 				cloneParameters.TemplateBehaviors.Add(new ConnectionManagerBehavior(false, this, this.logger));
-				this.DiscoveredNodeGroup = CreateNodeGroup(cloneParameters, this.discoveredNodeRequiredService);
+                this.DiscoveredNodeGroup = CreateNodeGroup(cloneParameters, this.discoveredNodeRequiredService);
 				this.DiscoveredNodeGroup.CustomGroupSelector = WellKnownGroupSelectors.ByNetwork; //is the default, but I want to use it
-				this.DiscoveredNodeGroup.Connect();
 			}
 			else
 			{
@@ -100,7 +99,6 @@ namespace Stratis.Bitcoin.Connection
 				this.ConnectNodeGroup = CreateNodeGroup(cloneParameters, NodeServices.Nothing);
 				this.ConnectNodeGroup.MaximumNodeConnection = this.connectionManagerSettings.Connect.Count;
 				this.ConnectNodeGroup.CustomGroupSelector = WellKnownGroupSelectors.ByEndpoint;
-				this.ConnectNodeGroup.Connect();
 			}
 
 			{
@@ -110,16 +108,24 @@ namespace Stratis.Bitcoin.Connection
 				var addrman = new AddressManager();
 				addrman.Add(this.connectionManagerSettings.AddNode.Select(c => new NetworkAddress(c)).ToArray(), IPAddress.Loopback);
 				var addrmanBehavior = new AddressManagerBehavior(addrman);
-				addrmanBehavior.Mode = AddressManagerBehaviorMode.AdvertizeDiscover;
-				cloneParameters.TemplateBehaviors.Add(addrmanBehavior);
+                addrmanBehavior.Mode = AddressManagerBehaviorMode.AdvertizeDiscover;
+                cloneParameters.TemplateBehaviors.Add(addrmanBehavior);
 
 				this.AddNodeNodeGroup = CreateNodeGroup(cloneParameters, NodeServices.Nothing);
 				this.AddNodeNodeGroup.MaximumNodeConnection = this.connectionManagerSettings.AddNode.Count;
 				this.AddNodeNodeGroup.CustomGroupSelector = WellKnownGroupSelectors.ByEndpoint;
-				this.AddNodeNodeGroup.Connect();
 			}
 
-			StringBuilder logs = new StringBuilder();
+            RelatedNodesGroups relGroups = new RelatedNodesGroups();
+            relGroups.Register("Discovered", this.DiscoveredNodeGroup);
+            relGroups.Register("Connect", this.ConnectNodeGroup);
+            relGroups.Register("AddNode", this.AddNodeNodeGroup);
+
+            this.DiscoveredNodeGroup?.Connect();
+            this.ConnectNodeGroup?.Connect();
+            this.AddNodeNodeGroup?.Connect();
+
+            StringBuilder logs = new StringBuilder();
 			logs.AppendLine("Node listening on:");
 			foreach (NodeServerEndpoint listen in this.connectionManagerSettings.Listen)
 			{
