@@ -3,12 +3,13 @@
     /// <summary>
     /// The current use-case for this class is to provide option-dependent serialization.
     /// It is a drop-in replacement for the legacy TransactionOptions enumeration.
-    /// 
+    /// </summary>
+    /// <remarks>
     /// The NetworkOptions instance is intended to be relayed from the Network object to 
     /// the child objects: Network => Block => Transaction => TxIn/TxOut => Coin => ...
     /// It can also be used on repository or stream objects that need to deserialize the 
     /// above objects or passed as a parameter futher down the call-hierarchy as needed.
-    /// </summary>
+    /// </remarks>
     public class NetworkOptions
     {
         public const uint None = 0x00000000;
