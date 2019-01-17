@@ -12,6 +12,7 @@ using Stratis.Bitcoin.Features.RPC;
 using Stratis.Bitcoin.Features.Api;
 using Stratis.Bitcoin.Utilities.Extensions;
 
+
 namespace Stratis.Bitcoin.Cli
 {
     public class Program
