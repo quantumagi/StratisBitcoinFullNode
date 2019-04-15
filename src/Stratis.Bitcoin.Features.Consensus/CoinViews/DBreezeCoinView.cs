@@ -298,39 +298,53 @@ namespace Stratis.Bitcoin.Features.Consensus.CoinViews
             uint256 res = null;
             using (DBreeze.Transactions.Transaction transaction = this.CreateTransaction())
             {
+                int currentHeight = this.GetRewindIndex(transaction);
+
+                targetHeight = targetHeight ?? (currentHeight - 1);
+
+                Guard.Assert(targetHeight < currentHeight);
+
                 transaction.SynchronizeTables("BlockHash", "Coins", "Rewind");
-                if (this.GetRewindIndex(transaction) == 0)
+
+                while (currentHeight > targetHeight)
                 {
-                    transaction.RemoveAllKeys("Coins", true);
-                    this.SetBlockHash(transaction, this.network.GenesisHash);
-
-                    res = this.network.GenesisHash;
-                }
-                else
-                {
-                    transaction.ValuesLazyLoadingIsOn = false;
-
-                    Row<int, byte[]> firstRow = transaction.SelectBackward<int, byte[]>("Rewind").FirstOrDefault();
-                    transaction.RemoveKey("Rewind", firstRow.Key);
-                    var rewindData = this.dBreezeSerializer.Deserialize<RewindData>(firstRow.Value);
-                    this.SetBlockHash(transaction, rewindData.PreviousBlockHash);
-
-                    foreach (uint256 txId in rewindData.TransactionsToRemove)
+                    if (currentHeight == 0)
                     {
-                        this.logger.LogTrace("Outputs of transaction ID '{0}' will be removed.", txId);
-                        transaction.RemoveKey("Coins", txId.ToBytes(false));
-                    }
+                        transaction.RemoveAllKeys("Coins", true);
 
-                    foreach (UnspentOutputs coin in rewindData.OutputsToRestore)
+                        res = this.network.GenesisHash;
+                    }
+                    else
                     {
-                        this.logger.LogTrace("Outputs of transaction ID '{0}' will be restored.", coin.TransactionId);
-                        transaction.Insert("Coins", coin.TransactionId.ToBytes(false), this.dBreezeSerializer.Serialize(coin.ToCoins()));
-                    }
+                        transaction.ValuesLazyLoadingIsOn = false;
 
-                    res = rewindData.PreviousBlockHash;
+                        Row<int, byte[]> firstRow = transaction.Select<int, byte[]>("Rewind", currentHeight);
+
+                        transaction.RemoveKey("Rewind", firstRow.Key);
+                        var rewindData = this.dBreezeSerializer.Deserialize<RewindData>(firstRow.Value);
+
+                        foreach (uint256 txId in rewindData.TransactionsToRemove)
+                        {
+                            this.logger.LogTrace("Outputs of transaction ID '{0}' will be removed.", txId);
+                            transaction.RemoveKey("Coins", txId.ToBytes(false));
+                        }
+
+                        foreach (UnspentOutputs coin in rewindData.OutputsToRestore)
+                        {
+                            this.logger.LogTrace("Outputs of transaction ID '{0}' will be restored.", coin.TransactionId);
+                            transaction.Insert("Coins", coin.TransactionId.ToBytes(false), this.dBreezeSerializer.Serialize(coin.ToCoins()));
+                        }
+
+                        res = rewindData.PreviousBlockHash;
+
+                        currentHeight--;
+                    }
                 }
+
+                this.SetBlockHash(transaction, res);
 
                 transaction.Commit();
+
             }
 
             return res;
