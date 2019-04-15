@@ -54,7 +54,7 @@ namespace Stratis.Bitcoin.Consensus
         /// </para>
         /// </summary>
         /// <returns>Hash of the block header which is now the tip of the chain.</returns>
-        Task<RewindState> RewindAsync();
+        Task<RewindState> RewindAsync(int? targetHeight = null);
 
         /// <summary>Execute header validation rules.</summary>
         /// <param name="header">The chained header that is going to be validated.</param>

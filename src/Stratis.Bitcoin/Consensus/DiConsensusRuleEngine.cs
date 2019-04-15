@@ -55,9 +55,9 @@ namespace Stratis.Bitcoin.Consensus
             return this.implementation.GetBlockHash();
         }
 
-        public Task<RewindState> RewindAsync()
+        public Task<RewindState> RewindAsync(int? targetHeight = null)
         {
-            return this.implementation.RewindAsync();
+            return this.implementation.RewindAsync(targetHeight);
         }
 
         public ValidationContext HeaderValidation(ChainedHeader header)
