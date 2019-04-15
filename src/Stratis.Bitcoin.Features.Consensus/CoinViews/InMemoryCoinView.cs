@@ -92,7 +92,7 @@ namespace Stratis.Bitcoin.Features.Consensus.CoinViews
         }
 
         /// <inheritdoc />
-        public uint256 Rewind()
+        public uint256 Rewind(int? targetHeight = null)
         {
             throw new NotImplementedException();
         }

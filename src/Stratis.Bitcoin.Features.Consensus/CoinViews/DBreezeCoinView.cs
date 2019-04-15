@@ -293,7 +293,7 @@ namespace Stratis.Bitcoin.Features.Consensus.CoinViews
         }
 
         /// <inheritdoc />
-        public uint256 Rewind()
+        public uint256 Rewind(int? targetHeight = null)
         {
             uint256 res = null;
             using (DBreeze.Transactions.Transaction transaction = this.CreateTransaction())
