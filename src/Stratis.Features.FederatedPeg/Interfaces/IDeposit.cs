@@ -28,6 +28,16 @@ namespace Stratis.Features.FederatedPeg.Interfaces
         string TargetAddress { get; }
 
         /// <summary>
+        /// The source of the first TxIn.
+        /// </summary>
+        TxIn FirstTxIn { get; }
+
+        /// <summary>
+        /// The sender address.
+        /// </summary>
+        string SenderAddress { get; set; }
+
+        /// <summary>
         /// The block number where the source deposit has been persisted.
         /// </summary>
         int BlockNumber { get; }

@@ -1,11 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using NBitcoin;
 using Stratis.Bitcoin.Consensus;
 using Stratis.Bitcoin.Controllers;
+using Stratis.Bitcoin.Interfaces;
 using Stratis.Bitcoin.Primitives;
 using Stratis.Features.FederatedPeg.Interfaces;
 using Stratis.Features.FederatedPeg.Models;
@@ -32,10 +34,16 @@ namespace Stratis.Features.FederatedPeg.SourceChain
 
         private readonly ILogger logger;
 
-        public MaturedBlocksProvider(ILoggerFactory loggerFactory, IDepositExtractor depositExtractor, IConsensusManager consensusManager)
+        private readonly IBlockStore blockStore;
+
+        private readonly Network network;
+
+        public MaturedBlocksProvider(ILoggerFactory loggerFactory, IDepositExtractor depositExtractor, IConsensusManager consensusManager, Network network = null, IBlockStore blockStore = null)
         {
             this.depositExtractor = depositExtractor;
             this.consensusManager = consensusManager;
+            this.blockStore = blockStore;
+            this.network = network;
 
             this.logger = loggerFactory.CreateLogger(this.GetType().FullName);
         }
@@ -87,7 +95,42 @@ namespace Stratis.Features.FederatedPeg.SourceChain
                 }
             }
 
+            if (this.blockStore != null && this.network != null)
+                this.ResolveRefundAddresses(maturedBlocks);
+
             return Result<List<MaturedBlockDepositsModel>>.Ok(maturedBlocks);
+        }
+
+        private void ResolveRefundAddresses(List<MaturedBlockDepositsModel> blockList)
+        {
+            var senderTx = new HashSet<uint256>();
+            foreach (MaturedBlockDepositsModel maturedBlockDepositsModel in blockList)
+            {
+                foreach (IDeposit deposit in maturedBlockDepositsModel.Deposits)
+                {
+                    if (!senderTx.Contains(deposit.FirstTxIn.PrevOut.Hash))
+                        senderTx.Add(deposit.FirstTxIn.PrevOut.Hash);
+                }
+            }
+
+            var senderTxArr = new uint256[senderTx.Count];
+            senderTx.CopyTo(senderTxArr);
+
+            Transaction[] senderTransactions = this.blockStore.GetTransactionsByIds(senderTxArr);
+            if (senderTransactions == null)
+                throw new InvalidOperationException("Transaction indexing must be enabled!");
+
+            var senderTxLookup = senderTransactions.ToDictionary(x => x.GetHash(), x => x);
+
+            foreach (MaturedBlockDepositsModel maturedBlockDepositsModel in blockList)
+            {
+                foreach (IDeposit deposit in maturedBlockDepositsModel.Deposits)
+                {
+                    OutPoint prevOut = deposit.FirstTxIn.PrevOut;
+                    TxOut txOut = senderTxLookup[prevOut.Hash].Outputs[prevOut.N];
+                    deposit.SenderAddress = txOut.ScriptPubKey.GetDestinationAddress(this.network).ToString();
+                }
+            }
         }
     }
 }

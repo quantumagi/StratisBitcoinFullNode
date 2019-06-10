@@ -93,7 +93,7 @@ namespace Stratis.Features.FederatedPeg.SourceChain
             this.logger.LogDebug("Processing a received deposit transaction with address: {0}. Transaction hash: {1}.",
                 targetAddress, transaction.GetHash());
 
-            return new Deposit(transaction.GetHash(), depositsToMultisig.Sum(o => o.Value), targetAddress, blockHeight, blockHash);
+            return new Deposit(transaction.GetHash(), depositsToMultisig.Sum(o => o.Value), targetAddress, blockHeight, blockHash, transaction.Inputs.FirstOrDefault());
         }
 
         public MaturedBlockDepositsModel ExtractBlockDeposits(ChainedHeaderBlock newlyMaturedBlock)
