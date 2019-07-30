@@ -32,12 +32,15 @@ namespace Stratis.Features.FederatedPeg.SourceChain
 
         private readonly IConsensusManager consensusManager;
 
+        private readonly ChainIndexer chainIndexer;
+
         private readonly ILogger logger;
 
-        public MaturedBlocksProvider(ILoggerFactory loggerFactory, IDepositExtractor depositExtractor, IConsensusManager consensusManager)
+        public MaturedBlocksProvider(ILoggerFactory loggerFactory, IDepositExtractor depositExtractor, IConsensusManager consensusManager, ChainIndexer chainIndexer)
         {
             this.depositExtractor = depositExtractor;
             this.consensusManager = consensusManager;
+            this.chainIndexer = chainIndexer;
 
             this.logger = loggerFactory.CreateLogger(this.GetType().FullName);
         }
@@ -67,25 +70,15 @@ namespace Stratis.Features.FederatedPeg.SourceChain
             int maxTimeCollectionCanTakeMs = RestApiClientBase.TimeoutMs / 2;
             var cancellation = new CancellationTokenSource(maxTimeCollectionCanTakeMs);
 
-            int maxBlockHeight = Math.Min(matureTipHeight, blockHeight + maxBlocks - 1);
-
-            var headers = new List<ChainedHeader>();
-            ChainedHeader header = consensusTip.GetAncestor(maxBlockHeight);
-            for (int i = maxBlockHeight; i >= blockHeight; i--)
-            {
-                headers.Add(header);
-                header = header.Previous;
-            }
-
-            headers.Reverse();
-
             int numDeposits = 0;
 
-            for (int ndx = 0; ndx < headers.Count; ndx += 100)
-            {
-                List<ChainedHeader> currentHeaders = headers.GetRange(ndx, Math.Min(100, headers.Count - ndx));
+            ChainedHeader prevBlock = this.chainIndexer.GetHeader(blockHeight).Previous;
 
-                List<uint256> hashes = currentHeaders.Select(h => h.HashBlock).ToList();
+            while ((prevBlock.Height < matureTipHeight) && ((maxBlocks -= 100) > 0))
+            {
+                List<ChainedHeader> blockHeaders = this.chainIndexer.EnumerateAfter(prevBlock).Take(Math.Min(matureTipHeight - prevBlock.Height, 100)).ToList();
+
+                List<uint256> hashes = blockHeaders.Select(h => h.HashBlock).ToList();
 
                 ChainedHeaderBlock[] blocks = this.consensusManager.GetBlockData(hashes);
 
@@ -99,7 +92,7 @@ namespace Stratis.Features.FederatedPeg.SourceChain
                     }
 
                     MaturedBlockDepositsModel maturedBlockDeposits = this.depositExtractor.ExtractBlockDeposits(chainedHeaderBlock);
-                    
+
                     maturedBlocks.Add(maturedBlockDeposits);
 
                     numDeposits += maturedBlockDeposits.Deposits?.Count ?? 0;
@@ -114,6 +107,8 @@ namespace Stratis.Features.FederatedPeg.SourceChain
                         return Result<List<MaturedBlockDepositsModel>>.Ok(maturedBlocks);
                     }
                 }
+
+                prevBlock = blockHeaders.Last();
             }
 
             return Result<List<MaturedBlockDepositsModel>>.Ok(maturedBlocks);
