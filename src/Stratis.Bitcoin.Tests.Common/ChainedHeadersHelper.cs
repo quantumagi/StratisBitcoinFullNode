@@ -25,7 +25,7 @@ namespace Stratis.Bitcoin.Tests.Common
 
             if (tip == null)
             {
-                ChainedHeader genesis = CreateGenesisChainedHeader();
+                ChainedHeader genesis = CreateGenesisChainedHeader(network);
                 tip = genesis;
             }
 

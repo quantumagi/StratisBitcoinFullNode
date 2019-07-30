@@ -97,13 +97,14 @@ namespace Stratis.Features.FederatedPeg.Tests.ControllersTests
             return new MaturedBlocksProvider(
                 this.loggerFactory,
                 this.depositExtractor,
-                this.consensusManager);
+                this.consensusManager,
+                new ChainIndexer(this.network, this.consensusManager.Tip));
         }
 
         [Fact]
         public async Task GetMaturedBlockDeposits_Fails_When_Block_Height_Greater_Than_Minimum_Deposit_Confirmations_Async()
         {
-            ChainedHeader tip = ChainedHeadersHelper.CreateConsecutiveHeaders(5, null, true).Last();
+            ChainedHeader tip = ChainedHeadersHelper.CreateConsecutiveHeaders(5, null, true, network: this.network).Last();
             this.consensusManager.Tip.Returns(tip);
 
             FederationGatewayController controller = this.CreateController();
@@ -140,7 +141,7 @@ namespace Stratis.Features.FederatedPeg.Tests.ControllersTests
         [Fact]
         public async Task GetMaturedBlockDeposits_Gets_All_Matured_Block_Deposits_Async()
         {
-            ChainedHeader tip = ChainedHeadersHelper.CreateConsecutiveHeaders(10, null, true).Last();
+            ChainedHeader tip = ChainedHeadersHelper.CreateConsecutiveHeaders(10, null, true, network: this.network).Last();
             this.consensusManager.Tip.Returns(tip);
 
             FederationGatewayController controller = this.CreateController();
